@@ -13,9 +13,11 @@ env:
   CLOUDSMITH_REPOSITORY: "staging"
   CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
+#4 change added permission
 permissions:
   contents: read
   actions: read
+  id-token: write
 
 jobs:
   publish:
@@ -32,17 +34,41 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
 
-
-
       - name: List directory contents
         run: ls -la dist/
         shell: bash
-
+      #5 change Push package to Cloudsmith step, add a step to install Cloudsmith CLI
+      - name: Install Cloudsmith CLI (OIDC)
+        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
+        with:
+          oidc-namespace: ${{ env.CLOUDSMITH_NAMESPACE }}
+          oidc-service-slug: ${{ env.CLOUDSMITH_SERVICE_SLUG }}
+      #7 Change will push both .whl and .tar.gz
       - name: Push package to Cloudsmith
         run: |
-          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
+          # ensure at least one wheel or sdist exists
+          if ! ls dist/*.whl dist/*.tar.gz 1> /dev/null 2>&1; then
             echo "No package found to upload"
             exit 1
           fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
+
+          echo "Uploading package files from dist/:"
+          ls -la dist/
+
+          # Upload each matching file individually
+          for FILE in dist/*; do
+            case "$FILE" in
+              *.whl|*.tar.gz)
+                echo "Uploading $FILE ..."
+                cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} "$FILE" --republish
+                if [ $? -ne 0 ]; then
+                  echo "Failed to upload $FILE"
+                  exit 1
+                fi
+                ;;
+              *)
+                # ignore other files
+                ;;
+            esac
+          done
         shell: bash
