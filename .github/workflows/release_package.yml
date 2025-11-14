@@ -13,7 +13,7 @@ env:
   CLOUDSMITH_REPOSITORY: "staging"
   CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
-#4 change added permission
+#5 change added permission
 permissions:
   contents: read
   actions: read
@@ -37,7 +37,7 @@ jobs:
       - name: List directory contents
         run: ls -la dist/
         shell: bash
-      #5 change Push package to Cloudsmith step, add a step to install Cloudsmith CLI
+      #6 change Push package to Cloudsmith step, add a step to install Cloudsmith CLI
       - name: Install Cloudsmith CLI (OIDC)
         uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
         with:
